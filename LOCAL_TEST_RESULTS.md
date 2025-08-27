@@ -84,7 +84,7 @@ The local testing has been **successfully completed** and validates that the RPC
 4. **Frame processing pipeline** handles video sequences properly
 5. **Performance** is acceptable for CPU (will be much faster on GPU)
 
-### 🎯 **Key Benefits Demonstrated**
+### **Key Benefits Demonstrated**
 - **Cross-view consistency**: Architecture ready for dual-camera racing data
 - **Memory efficiency**: 79x compression enables longer temporal contexts
 - **Event detection**: Crashes properly separated from background motion
