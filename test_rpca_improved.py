@@ -6,6 +6,9 @@ import matplotlib.pyplot as plt
 from sklearn.utils.extmath import randomized_svd
 from scipy import ndimage
 import time
+import tqdm
+import einops
+import cv2
 
 def rpca_alm(D, lambda_param=None, mu=None, tol=1e-7, max_iter=100):
     """Robust PCA with improved convergence."""
@@ -23,7 +26,7 @@ def rpca_alm(D, lambda_param=None, mu=None, tol=1e-7, max_iter=100):
     
     print(f"RPCA parameters: λ={lambda_param:.4f}, μ={mu:.6f}")
     
-    for iter_num in range(max_iter):
+    for iter_num in tqdm.tqdm(range(max_iter)):
         # Update L: SVD shrinkage
         temp_L = D - S + (1/mu) * Y
         U, sigma, Vt = randomized_svd(temp_L, n_components=min(m, n, 50))
@@ -58,7 +61,13 @@ def load_frame_sequence(hdf5_path, start_frame=0, num_frames=30):
             frame_key = f'frame_{i}_x'
             
             if frame_key in f:
-                frame = f[frame_key][:]
+                frame1 = f[frame_key][:,:,:3]
+                frame2 = f[frame_key][:,:,3:]
+                # convert to grayscale
+                frame1 = cv2.cvtColor(frame1, cv2.COLOR_BGR2GRAY)[:,:,None]
+                frame2 = cv2.cvtColor(frame2, cv2.COLOR_BGR2GRAY)[:,:,None]
+
+                frame = np.concatenate([frame1, frame2], axis=2)
                 frames.append(frame)
             else:
                 break
@@ -87,8 +96,9 @@ def preprocess_frames_rpca(frames, method='mean_center'):
     - 'temporal_diff': Use frame differences
     """
     T, H, W, C = frames.shape
-    frame_matrix = frames.reshape(T, H * W * C).astype(np.float32)
-    
+    #frame_matrix = frames.reshape(T, H * W * C).astype(np.float32)
+    frame_matrix = einops.rearrange(frames, 't h w (player color) -> t (h w player color)', color=1).astype(np.float32)
+
     if method == 'mean_center':
         # Convert to [0,1] then remove temporal mean
         frame_matrix = frame_matrix / 255.0
@@ -156,7 +166,7 @@ def visualize_lambda_comparison(frames, results, lambdas):
     fig, axes = plt.subplots(3, len(lambdas) + 1, figsize=(4*(len(lambdas)+1), 12))
     
     # Original frame
-    orig_rgb = frames[frame_idx, :, :, :3]
+    orig_rgb = frames[frame_idx, :, :, :1]
     axes[0, 0].imshow(orig_rgb)
     axes[0, 0].set_title('Original')
     axes[0, 0].axis('off')
@@ -169,11 +179,11 @@ def visualize_lambda_comparison(frames, results, lambdas):
         S = results[lam]['S'].reshape(T, H, W, C)
         
         # Convert back to [0, 255] range (handling negative values from mean-centering)
-        L_vis = np.clip((L[frame_idx, :, :, :3] + 0.5) * 255, 0, 255).astype(np.uint8)
-        S_vis = np.clip((S[frame_idx, :, :, :3] + 0.5) * 255, 0, 255).astype(np.uint8)
+        L_vis = np.clip((L[frame_idx, :, :, :1] + 0.5) * 255, 0, 255).astype(np.uint8)
+        S_vis = np.clip((S[frame_idx, :, :, :1] + 0.5) * 255, 0, 255).astype(np.uint8)
         
         # For sparse component, enhance visibility
-        S_enhanced = np.clip(np.abs(S[frame_idx, :, :, :3]) * 1000, 0, 255).astype(np.uint8)
+        S_enhanced = np.clip(np.abs(S[frame_idx, :, :, :1]) * 1000, 0, 255).astype(np.uint8)
         
         axes[0, i+1].imshow(L_vis)
         axes[0, i+1].set_title(f'L (λ={lam})')
@@ -194,25 +204,19 @@ def visualize_lambda_comparison(frames, results, lambdas):
     plt.show()
 
 def main():
-    dataset_path = '/Users/guysinger/Desktop/multiverse/dataset_multiplayer_racing_1.hdf5'
+    dataset_path = '/home/ubuntu/multiplayer-racing-low-res/dataset_multiplayer_racing_470.hdf5'
     
     print("=== RPCA Parameter Optimization Test ===\n")
     
     # Load smaller sequence for faster testing
     print("Loading frames...")
-    frames = load_frame_sequence(dataset_path, start_frame=0, num_frames=25)
+    frames = load_frame_sequence(dataset_path, start_frame=0, num_frames=50)
     print(f"Loaded {len(frames)} frames with shape {frames.shape}")
     
     # Option 1: Test with original resolution
     print("\n1. Testing with original resolution (48x64)")
-    lambdas_test = [0.01, 0.05, 0.1, 0.3, 0.5]
+    lambdas_test = [0.001]
     results_orig = test_lambda_values(frames, lambdas_test)
-    
-    # Option 2: Test with upsampled frames
-    print("\n2. Testing with upsampled resolution (96x128)")
-    frames_upsampled = upsample_frames(frames, scale_factor=2)
-    print(f"Upsampled shape: {frames_upsampled.shape}")
-    results_up = test_lambda_values(frames_upsampled, [0.1, 0.3])
     
     # Visualizations
     print("\n3. Generating comparison visualizations...")

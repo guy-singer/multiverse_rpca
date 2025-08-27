@@ -65,7 +65,7 @@ def rpca_alm(D, lambda_param=None, mu=None, tol=1e-7, max_iter=1000):
     
     return L, S, iter_num + 1
 
-def load_frame_sequence(hdf5_path, start_frame=0, num_frames=50):
+def load_frame_sequence(hdf5_path, start_frame=0, num_frames=1000):
     """Load a sequence of frames from HDF5 dataset."""
     frames = []
     actions = []
@@ -167,10 +167,10 @@ def analyze_rpca_components(L, S, frames_shape):
     print(f"  - Max sparse activity at frame: {np.argmax(S_temporal)}")
 
 def main():
-    dataset_path = '/Users/guysinger/Desktop/multiverse/dataset_multiplayer_racing_1.hdf5'
+    dataset_path = '/home/ubuntu/multiplayer-racing-low-res/dataset_multiplayer_racing_470.hdf5'
     
     print("Loading frame sequence...")
-    frames, actions = load_frame_sequence(dataset_path, start_frame=0, num_frames=50)
+    frames, actions = load_frame_sequence(dataset_path, start_frame=0, num_frames=1000)
     print(f"Loaded {len(frames)} frames with shape {frames.shape}")
     print(f"Actions shape: {actions.shape}")
     
