@@ -158,46 +158,117 @@ def test_lambda_values(frames, lambdas=[0.01, 0.05, 0.1, 0.3, 0.5]):
     
     return results
 
+
+def visualize_rpca_results(frames, L, S, frame_indices=[0, 10, 20]):
+    """Visualize original frames, low-rank and sparse components."""
+    T, H, W, C = frames.shape
+    
+    # Reshape back to frame format
+    L_frames = L.reshape(T, H, W, C)
+    S_frames = S.reshape(T, H, W, C)
+    
+    fig, axes = plt.subplots(len(frame_indices), 4, figsize=(16, 4*len(frame_indices)))
+    if len(frame_indices) == 1:
+        axes = axes.reshape(1, -1)
+    
+    for i, frame_idx in enumerate(frame_indices):
+        # Use first 3 channels as RGB for visualization
+        orig_rgb = frames[frame_idx, :, :, :1]
+        L_rgb = np.clip(L_frames[frame_idx, :, :, :1] * 255, 0, 255).astype(np.uint8)
+        S_rgb = np.clip(S_frames[frame_idx, :, :, :1] * 255, 0, 255).astype(np.uint8)
+        
+        # Compute difference for visualization
+        diff_rgb = np.clip(np.abs(orig_rgb.astype(float) - L_rgb.astype(float)), 0, 255).astype(np.uint8)
+        
+        axes[i, 0].imshow(orig_rgb)
+        axes[i, 0].set_title(f'Original Frame {frame_idx}')
+        axes[i, 0].axis('off')
+        
+        axes[i, 1].imshow(L_rgb)
+        axes[i, 1].set_title('Low-rank (L)')
+        axes[i, 1].axis('off')
+        
+        axes[i, 2].imshow(S_rgb)
+        axes[i, 2].set_title('Sparse (S)')
+        axes[i, 2].axis('off')
+        
+        axes[i, 3].imshow(diff_rgb)
+        axes[i, 3].set_title('|Original - L|')
+        axes[i, 3].axis('off')
+    
+    plt.tight_layout()
+    plt.savefig('rpca_results.png', dpi=150, bbox_inches='tight')
+    plt.show()
+
 def visualize_lambda_comparison(frames, results, lambdas):
-    """Visualize results across different lambda values."""
+    """Visualize results across different lambda values for both players."""
     T, H, W, C = frames.shape
     frame_idx = T // 2  # Middle frame
     
-    fig, axes = plt.subplots(3, len(lambdas) + 1, figsize=(4*(len(lambdas)+1), 12))
+    # Create subplot layout: 6 rows (3 per player) x (len(lambdas) + 1) columns
+    fig, axes = plt.subplots(6, len(lambdas) + 1, figsize=(4*(len(lambdas)+1), 18))
     
-    # Original frame
-    orig_rgb = frames[frame_idx, :, :, :1]
-    axes[0, 0].imshow(orig_rgb)
-    axes[0, 0].set_title('Original')
+    # Original frames for both players
+    orig_player1 = frames[frame_idx, :, :, :1]  # Player 1
+    orig_player2 = frames[frame_idx, :, :, 1:2]  # Player 2
+    
+    # Player 1 original
+    axes[0, 0].imshow(orig_player1)
+    axes[0, 0].set_title('Original Player 1')
     axes[0, 0].axis('off')
     axes[1, 0].axis('off')
     axes[2, 0].axis('off')
+    
+    # Player 2 original
+    axes[3, 0].imshow(orig_player2)
+    axes[3, 0].set_title('Original Player 2')
+    axes[3, 0].axis('off')
+    axes[4, 0].axis('off')
+    axes[5, 0].axis('off')
     
     # Results for each lambda
     for i, lam in enumerate(lambdas):
         L = results[lam]['L'].reshape(T, H, W, C)
         S = results[lam]['S'].reshape(T, H, W, C)
         
-        # Convert back to [0, 255] range (handling negative values from mean-centering)
-        L_vis = np.clip((L[frame_idx, :, :, :1] + 0.5) * 255, 0, 255).astype(np.uint8)
-        S_vis = np.clip((S[frame_idx, :, :, :1] + 0.5) * 255, 0, 255).astype(np.uint8)
+        # Player 1 components (channel 0)
+        L_vis_p1 = np.clip((L[frame_idx, :, :, :1] + 0.5) * 255, 0, 255).astype(np.uint8)
+        S_enhanced_p1 = np.clip(np.abs(S[frame_idx, :, :, :1]) * 1000, 0, 255).astype(np.uint8)
         
-        # For sparse component, enhance visibility
-        S_enhanced = np.clip(np.abs(S[frame_idx, :, :, :1]) * 1000, 0, 255).astype(np.uint8)
+        # Player 2 components (channel 1)
+        L_vis_p2 = np.clip((L[frame_idx, :, :, 1:2] + 0.5) * 255, 0, 255).astype(np.uint8)
+        S_enhanced_p2 = np.clip(np.abs(S[frame_idx, :, :, 1:2]) * 1000, 0, 255).astype(np.uint8)
         
-        axes[0, i+1].imshow(L_vis)
-        axes[0, i+1].set_title(f'L (λ={lam})')
+        # Player 1 visualizations
+        axes[0, i+1].imshow(L_vis_p1)
+        axes[0, i+1].set_title(f'L P1 (λ={lam})')
         axes[0, i+1].axis('off')
         
-        axes[1, i+1].imshow(S_enhanced)
-        axes[1, i+1].set_title(f'S Enhanced (λ={lam})')
+        axes[1, i+1].imshow(S_enhanced_p1)
+        axes[1, i+1].set_title(f'S P1 (λ={lam})')
         axes[1, i+1].axis('off')
         
-        # Show sparsity percentage
+        # Player 2 visualizations
+        axes[3, i+1].imshow(L_vis_p2)
+        axes[3, i+1].set_title(f'L P2 (λ={lam})')
+        axes[3, i+1].axis('off')
+        
+        axes[4, i+1].imshow(S_enhanced_p2)
+        axes[4, i+1].set_title(f'S P2 (λ={lam})')
+        axes[4, i+1].axis('off')
+        
+        # Show sparsity percentage for both players
         sparsity = results[lam]['sparsity']
+        
+        # Player 1 stats
         axes[2, i+1].text(0.5, 0.5, f'{sparsity:.1f}% sparse\nL1: {results[lam]["l1_norm"]:.2f}', 
                          ha='center', va='center', transform=axes[2, i+1].transAxes)
         axes[2, i+1].axis('off')
+        
+        # Player 2 stats (same overall stats but separate visualization)
+        axes[5, i+1].text(0.5, 0.5, f'{sparsity:.1f}% sparse\nL1: {results[lam]["l1_norm"]:.2f}', 
+                         ha='center', va='center', transform=axes[5, i+1].transAxes)
+        axes[5, i+1].axis('off')
     
     plt.tight_layout()
     plt.savefig('lambda_comparison.png', dpi=150, bbox_inches='tight')
@@ -215,7 +286,7 @@ def main():
     
     # Option 1: Test with original resolution
     print("\n1. Testing with original resolution (48x64)")
-    lambdas_test = [0.001]
+    lambdas_test = [0.005]
     results_orig = test_lambda_values(frames, lambdas_test)
     
     # Visualizations
@@ -245,5 +316,10 @@ def main():
     sparsity_diff = np.mean(np.abs(S_diff) < 1e-6) * 100
     print(f"Temporal differences approach - Sparsity: {sparsity_diff:.1f}%")
 
+    # Visualization
+    print("\nGenerating visualizations...")
+    visualize_rpca_results(frames, L_diff, S_diff, frame_indices=[0, 25, 49])
+
 if __name__ == "__main__":
     main()
+
