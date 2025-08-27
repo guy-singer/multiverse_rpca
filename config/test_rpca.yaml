@@ -1,0 +1,31 @@
+
+# Minimal test configuration
+defaults:
+  - _self_
+  - env: racing
+  - agent: racing
+  - world_model_env: fast
+
+# Minimal training settings for testing
+training:
+  should: true
+  num_final_epochs: 2
+  cache_in_ram: false
+  num_workers_data_loaders: 0
+
+denoiser:
+  training:
+    num_autoregressive_steps: 2
+    steps_first_epoch: 2
+    steps_per_epoch: 2
+    batch_size: 2
+    grad_acc_steps: 1
+    
+# Enable RPCA for testing
+rpca:
+  enabled: true
+  method: "inexact_alm"
+  lambda_coeff: 0.1
+  cache_dir: "test_rpca_cache" 
+  max_cache_size: 10
+  enable_parallel: false

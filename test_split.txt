@@ -1,0 +1,8 @@
+# Test split files for Gran Turismo 4 dataset
+# Add specific .hdf5 filenames that should be used for testing
+# Example format (replace with actual test files):
+replay_001.hdf5
+replay_015.hdf5
+replay_032.hdf5
+replay_048.hdf5
+replay_067.hdf5

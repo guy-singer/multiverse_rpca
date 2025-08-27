@@ -1,0 +1,151 @@
+# RPCA Multiverse Comparison Configuration
+
+# Base experiment settings
+base_settings:
+  num_epochs: 20
+  batch_size: 16
+  learning_rate: 1e-4
+  eval_frequency: 5
+  save_checkpoints: true
+
+# Data configuration
+data:
+  low_res_path: "data/processed/low_res"
+  full_res_path: "data/processed/full_res"
+  
+# Experiment definitions
+experiments:
+  
+  # Baseline experiment (no RPCA)
+  baseline:
+    name: "baseline"
+    description: "Original Multiverse implementation without RPCA"
+    use_rpca: false
+    
+  # RPCA default configuration
+  rpca_default:
+    name: "rpca_default"
+    description: "RPCA with default settings (Inexact ALM, auto lambda)"
+    use_rpca: true
+    rpca_method: "inexact_alm"
+    lambda_coeff: null  # Auto-compute
+    fusion_method: "concat"
+    enable_preprocessing: true
+    cache_decompositions: true
+    
+  # RPCA with additive fusion
+  rpca_fusion_add:
+    name: "rpca_fusion_add"
+    description: "RPCA with additive fusion instead of concatenation"
+    use_rpca: true
+    rpca_method: "inexact_alm"
+    fusion_method: "add"
+    
+  # RPCA with attention fusion
+  rpca_fusion_attention:
+    name: "rpca_fusion_attention"
+    description: "RPCA with attention-based fusion"
+    use_rpca: true
+    rpca_method: "inexact_alm"
+    fusion_method: "attention"
+    
+  # RPCA with different lambda values
+  rpca_lambda_high:
+    name: "rpca_lambda_0p5"
+    description: "RPCA with high lambda (more emphasis on sparsity)"
+    use_rpca: true
+    lambda_coeff: 0.5
+    
+  rpca_lambda_medium:
+    name: "rpca_lambda_0p1"
+    description: "RPCA with medium lambda"
+    use_rpca: true
+    lambda_coeff: 0.1
+    
+  rpca_lambda_low:
+    name: "rpca_lambda_0p01"
+    description: "RPCA with low lambda (more emphasis on low-rank)"
+    use_rpca: true
+    lambda_coeff: 0.01
+    
+  # RPCA with different loss weightings
+  rpca_weighted_lowrank:
+    name: "rpca_weighted_lowrank"
+    description: "RPCA with higher weight on low-rank component"
+    use_rpca: true
+    rpca_loss_weights:
+      lambda_lowrank: 2.0
+      lambda_sparse: 1.0
+      lambda_consistency: 0.1
+      beta_nuclear: 0.02
+      
+  rpca_weighted_sparse:
+    name: "rpca_weighted_sparse"
+    description: "RPCA with higher weight on sparse component"
+    use_rpca: true
+    rpca_loss_weights:
+      lambda_lowrank: 1.0
+      lambda_sparse: 2.0
+      lambda_consistency: 0.1
+      beta_nuclear: 0.01
+      
+  rpca_weighted_consistency:
+    name: "rpca_weighted_consistency"
+    description: "RPCA with higher weight on consistency loss"
+    use_rpca: true
+    rpca_loss_weights:
+      lambda_lowrank: 1.0
+      lambda_sparse: 1.0
+      lambda_consistency: 0.5
+      beta_nuclear: 0.01
+      
+  # Memory optimization experiments
+  rpca_memory_optimized:
+    name: "rpca_memory_opt"
+    description: "RPCA with memory optimization features"
+    use_rpca: true
+    batch_size: 8  # Smaller batch for memory efficiency
+    enable_preprocessing: true
+    cache_decompositions: false  # Don't cache to save memory
+    
+  # Cross-view consistency experiment
+  rpca_cross_view:
+    name: "rpca_cross_view"
+    description: "RPCA with cross-view consistency for dual cameras"
+    use_rpca: true
+    rpca_method: "inexact_alm"
+    cross_view_mode: "stack_channels"
+    
+# Evaluation metrics
+evaluation:
+  compute_psnr: true
+  compute_ssim: true
+  compute_lpips: false  # Perceptual loss (optional)
+  measure_inference_speed: true
+  measure_memory_usage: true
+  
+  # RPCA-specific evaluations
+  compute_compression_ratio: true
+  analyze_decomposition_quality: true
+  visualize_components: true
+
+# Output configuration
+output:
+  save_plots: true
+  save_checkpoints: true
+  save_decomposition_examples: true
+  create_comparison_report: true
+  export_metrics_csv: true
+
+# Hardware settings
+hardware:
+  use_gpu: true
+  mixed_precision: false
+  num_workers: 4
+  
+# Wandb configuration
+wandb:
+  project: "multiverse-rpca-comparison"
+  entity: null  # Set to your wandb username
+  log_frequency: 10
+  save_code: true

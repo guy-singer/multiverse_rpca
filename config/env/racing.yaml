@@ -5,3 +5,26 @@ num_actions: 66
 path_data_low_res: null
 path_data_full_res: null
 keymap: racing
+
+# RPCA Configuration
+rpca:
+  enabled: false  # Set to true to enable RPCA preprocessing
+  method: "inexact_alm"  # Options: "inexact_alm", "pcp", "nonconvex"
+  lambda_coeff: null  # Auto-compute if null (1/sqrt(max(m,n)))
+  temporal_mode: true  # True: (pixels, time), False: (time, pixels)
+  cache_dir: "rpca_cache"  # Directory for caching decompositions
+  max_cache_size: 1000  # Maximum number of cached decompositions
+  enable_parallel: true  # Parallel processing of segments
+  
+  # Cross-view consistency (for dual-camera scenarios)
+  cross_view_mode: "stack_channels"  # Options: "stack_channels", "separate"
+  
+  # Memory optimization
+  compression_threshold: 0.01  # Rank threshold for compression
+  
+  # Loss function weights (used during training)
+  loss_weights:
+    lambda_lowrank: 1.0      # Weight for low-rank component loss
+    lambda_sparse: 1.0       # Weight for sparse component loss  
+    lambda_consistency: 0.1  # Weight for consistency loss (L + S = D)
+    beta_nuclear: 0.01       # Nuclear norm regularization weight
